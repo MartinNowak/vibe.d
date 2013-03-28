@@ -14,7 +14,7 @@ import std.random;
 
 
 /**
-	Generates a psasword hash using MD5 together with a 32-bit salt.
+	Generates a password hash using MD5 together with a 32-bit salt.
 
 	Params:
 		password = The password for which a one-way hash is to be computed
