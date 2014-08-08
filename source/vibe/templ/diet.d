@@ -50,33 +50,45 @@ void compileDietFile(string template_file, ALIASES...)(OutputStream stream__)
 	compileDietFileIndent!(template_file, 0, ALIASES)(stream__);
 }
 /// ditto
-void compileDietFileIndent(string template_file, size_t indent, ALIASES...)(OutputStream stream__)
+version (VibePrecompileDiet)
 {
-	// some imports to make available by default inside templates
-	import vibe.http.common;
-	import vibe.stream.wrapper;
-	import vibe.utils.string;
-
-	pragma(msg, "Compiling diet template '"~template_file~"'...");
-	static if (ALIASES.length > 0 && __VERSION__ < 2064) {
-		pragma(msg, "Warning: using render!() or parseDietFile!() with aliases is unsafe,");
-		pragma(msg, "         please consider using renderCompat!()/parseDietFileCompat!()");
-		pragma(msg, "         on DMD versions prior to 2.064.");
+	void compileDietFileIndent(string template_file, size_t indent, ALIASES...)(OutputStream stream)
+	{
+		enum name = template_file.chomp(".dt").tr(".-", "__");
+		mixin("import "~name~" : render;");
+		render!(indent, ALIASES)(stream);
 	}
-	//pragma(msg, localAliases!(0, ALIASES));
-	mixin(localAliases!(0, ALIASES));
+}
+else
+{
+	void compileDietFileIndent(string template_file, size_t indent, ALIASES...)(OutputStream stream__)
+	{
+		// some imports to make available by default inside templates
+		import vibe.http.common;
+		import vibe.stream.wrapper;
+		import vibe.utils.string;
 
-	static if (is(typeof(diet_translate__))) alias TRANSLATE = TypeTuple!(diet_translate__);
-	else alias TRANSLATE = TypeTuple!();
+		pragma(msg, "Compiling diet template '"~template_file~"'...");
+		static if (ALIASES.length > 0 && __VERSION__ < 2064) {
+			pragma(msg, "Warning: using render!() or parseDietFile!() with aliases is unsafe,");
+			pragma(msg, "         please consider using renderCompat!()/parseDietFileCompat!()");
+			pragma(msg, "         on DMD versions prior to 2.064.");
+		}
+		//pragma(msg, localAliases!(0, ALIASES));
+		mixin(localAliases!(0, ALIASES));
 
-	auto output__ = StreamOutputRange(stream__);
+		static if (is(typeof(diet_translate__))) alias TRANSLATE = TypeTuple!(diet_translate__);
+		else alias TRANSLATE = TypeTuple!();
 
-	// Generate the D source code for the diet template
-	//pragma(msg, dietParser!template_file(indent));
-	static if (is(typeof(diet_translate__)))
-		mixin(dietParser!(template_file, diet_translate__)(indent));
-	else
-		mixin(dietParser!template_file(indent));
+		auto output__ = StreamOutputRange(stream__);
+
+		// Generate the D source code for the diet template
+		//pragma(msg, dietParser!template_file(indent));
+		static if (is(typeof(diet_translate__)))
+			mixin(dietParser!(template_file, diet_translate__)(indent));
+		else
+			mixin(dietParser!template_file(indent));
+	}
 }
 
 /// compatibility alias
@@ -161,7 +173,7 @@ void compileDietString(string diet_code, ALIASES...)(OutputStream stream__)
 	import vibe.stream.wrapper;
 	import vibe.utils.string;
 	import std.typetuple;
-	
+
 	//pragma(msg, localAliases!(0, ALIASES));
 	mixin(localAliases!(0, ALIASES));
 
@@ -236,14 +248,14 @@ private string dietStringParser(string diet_code, string name, TRANSLATE...)(siz
 /* Reading of input files                                                     */
 /******************************************************************************/
 
-private struct TemplateBlock {
+package struct TemplateBlock {
 	string name;
 	int mode = 0; // -1: prepend, 0: replace, 1: append
 	string indentStyle;
 	Line[] lines;
 }
 
-private class BlockStore {
+package class BlockStore {
 	TemplateBlock[] blocks;
 }
 
@@ -283,7 +295,7 @@ private bool isPartOf(string str, STRINGS...)()
 	return false;
 }
 
-private string[] extractDependencies(in Line[] lines)
+package string[] extractDependencies(in Line[] lines)
 {
 	string[] ret;
 	foreach (ref ln; lines) {
@@ -409,7 +421,7 @@ private class OutputContext {
 	}
 }
 
-private struct DietCompiler(TRANSLATE...)
+package struct DietCompiler(TRANSLATE...)
 	if(TRANSLATE.length <= 1)
 {
 	private {
@@ -1336,9 +1348,9 @@ unittest {
 	assert(compile!("- auto cond = false;\ndiv(someattr=cond ? \"foo\" : null)") == "<div></div>");
 	assert(compile!("- auto cond = false;\ndiv(someattr=cond ? true : false)") == "<div></div>");
 	assert(compile!("- auto cond = true;\ndiv(someattr=cond ? true : false)") == "<div someattr=\"someattr\"></div>");
-	assert(compile!("doctype html\n- auto cond = true;\ndiv(someattr=cond ? true : false)") 
+	assert(compile!("doctype html\n- auto cond = true;\ndiv(someattr=cond ? true : false)")
 		== "<!DOCTYPE html>\n<div someattr></div>");
-	assert(compile!("doctype html\n- auto cond = false;\ndiv(someattr=cond ? true : false)") 
+	assert(compile!("doctype html\n- auto cond = false;\ndiv(someattr=cond ? true : false)")
 		== "<!DOCTYPE html>\n<div></div>");
 
 	// issue 510

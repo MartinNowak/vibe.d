@@ -24,7 +24,7 @@
 	"sourceFiles-windows-x86" : ["lib/win-i386/eay.lib", "lib/win-i386/ssl.lib"],
 	"copyFiles-windows-x86_64": ["lib/win-amd64/libeay32.dll", "lib/win-amd64/ssleay32.dll"],
 	"sourceFiles-windows-x86_64" : ["lib/win-amd64/libeay32.lib", "lib/win-amd64/ssleay32.lib"],
-	
+
 	"configurations": [
 		{
 			"name": "libevent",
@@ -63,5 +63,11 @@
 		}
 	},
 
-	"-ddoxFilterArgs": ["--unittest-examples", "--min-protection=Protected", "--ex", "vibe.core.drivers.", "--ex", "vibe.internal."]
+	"-ddoxFilterArgs": ["--unittest-examples", "--min-protection=Protected", "--ex", "vibe.core.drivers.", "--ex", "vibe.internal."],
+
+	"importPaths": ["source", "precompiled_diet"],
+
+	"subPackages": [
+		"./diet-compiler/"
+	],
 }
